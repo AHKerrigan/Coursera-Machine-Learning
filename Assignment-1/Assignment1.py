@@ -105,8 +105,6 @@ def featureScale(features):
 	
 	return np.asmatrix(new_matrix)
 		
-
-
 if __name__ == "__main__":
 	data = loadData()
 	X = createX(data)
