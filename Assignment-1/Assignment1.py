@@ -1,19 +1,28 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-def loadData():
-    data = pd.read_csv("data/ex1data1.txt", sep = ",", header=None)
+def loadData(file):
+    data = pd.read_csv(file, sep = ",", header=None)
     return data
 
 def createX(data):
+	"""Constructs the X matrix for our data based on the dataframe
+	provided
+	"""
 	X = []
-	for feature in data[0]:
-		X.append([1, feature])
+	for index, row in data.iterrows():
+		# We always consider x0 to be 1
+		new_row = [1]
+		
+		for column in range(len(row) - 1):
+			new_row.append(row[column])
+		X.append(new_row)
 	return np.asmatrix(X)
 
 
-def scatterPlot(data, m , b):
+def scatterPlot2D(data, m , b):
 	"""Takes in data, a slope, and a y intercept, and displays a scatterplot
 	with a predicted regression line
 	"""
@@ -21,6 +30,8 @@ def scatterPlot(data, m , b):
 	dfp = dataframe.plot(x=0, y=1, kind='scatter')
 	dfp.set_xlabel("Population")
 	dfp.set_ylabel("Profit")
+	
+	# For the time being, the start values are hard coded
 	plt.plot([5, 25], [(5 * m + b), (25 * m + b)], 'k-', lw=2)
 	plt.show()
 
@@ -47,12 +58,11 @@ def vectorize(features):
 		y.append([item])
 	return np.asmatrix(y)
 
-def gradientDescent(theta, X, y, alpha):
+def gradientDescent(theta, X, y, alpha, iterations):
 	"""Takes an intial hypothesis theta, a set of features X, and a result
 	vector y and performs gradient descent to find a optimal theta
 	"""
 	# The number of iterations we'll be using
-	iterations = 10000
 	m = len(y)
 	for interation in range(iterations):
 		tempTheta = []
@@ -103,29 +113,65 @@ def featureScale(features):
 			new_column.append(row.item(x) / maxes[x])
 		new_matrix.append(new_column)
 	
-	return np.asmatrix(new_matrix)
+	return np.asmatrix(new_matrix), maxes
+
+def scaledGradientDescent(theta, X, y, alpha, iterations):
+	"""Scales each parameter before running it through gradient descent.
+	The fifth parameter is iterations
+	"""
+	scaledX, maxes = featureScale(X)
+	scaled_theta =  gradientDescent(theta, scaledX, y, alpha, iterations)
+
+	return_theta = []
+	for i in range(len(maxes)):
+		return_theta.append([scaled_theta.item(i) / maxes[i]])
+	
+	return np.asmatrix(return_theta)
+
 		
 if __name__ == "__main__":
-	data = loadData()
+	data = loadData("data/ex1data1.txt")
 	X = createX(data)
-	y = vectorize(data[1])
-	scaledX = featureScale(X)	
+	y = vectorize(data[1])	
 
-	# The initial learning rate
+	# The initial learning rate and initial paremeters (for )
 	alpha = 0.01
 	theta = np.matrix([[0], [1]])
 
+	"""
 	perfect_theta = normalEquation(X, y)
-	new_theta = gradientDescent(theta, X, y, alpha)
-	scaled_perfect_theta = normalEquation(scaledX, y)
-	scaled_new_theta = gradientDescent(theta, scaledX, y, alpha)
-	
+	new_theta = gradientDescent(theta, X, y, alpha, 10000)
+	scaled_new_theta = scaledGradientDescent(theta, X, y, alpha, 10000)
+
+
 	print("Perfect Theta: ", perfect_theta)
 	print("Gradient Descent: ", new_theta)
-	print("Scaled Perfect Theta: ", scaled_perfect_theta)
 	print("Scaled Gradient Descent: ", scaled_new_theta)
 
+	scatterPlot2D(data, theta.item(1), theta.item(0))
+	scatterPlot2D(data, new_theta.item(1), new_theta.item(0))
+	"""
+	
+	print("Now doing multivariate")
 
-	scatterPlot(data, theta.item(1), theta.item(0))
-	scatterPlot(data, new_theta.item(1), new_theta.item(0))
+	# The initial learning rate and initial paremeters (for )
+	alpha = 0.01
+	theta = np.matrix([[0], [0], [0]])
+
+	data = loadData("data/ex1data2.txt")
+	X = createX(data)
+	y = vectorize(data[2])
+	print("Original Cost:", computeCost(theta, X, y))
+
+	scaled_new_theta = scaledGradientDescent(theta, X, y, alpha, 100000)
+	perfect_theta = normalEquation(X, y)
+
+	# Interesting result to note here
+	# When gradient descent has 10000 iterations, the z value swings wildly
+	# in the wrong direction, but with 100000 iterations it seems to pull itself
+	# back toward the optimal value
+	print("Gradient Descent: ", scaled_new_theta)
+	print("Normal Equation ", perfect_theta)
+	print("New Cost:", computeCost(scaled_new_theta, X, y))
+
 	
